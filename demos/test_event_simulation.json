@@ -1,0 +1,96 @@
+{
+  "demo_name": "Project Creation Event Flow Test",
+  "description": "Simulates a complete event flow through Multi-Claude 3.0 system",
+  "test_event": {
+    "event_id": "evt_test_001",
+    "event_type": "user.request.create_project",
+    "source": "demo_test",
+    "timestamp": "2025-12-16T12:00:00Z",
+    "priority": "high",
+    "session_id": "session_demo_001",
+    "payload": {
+      "user_id": "demo_user",
+      "project_name": "demo-app",
+      "project_type": "react-typescript",
+      "description": "Demo application to test Multi-Claude 3.0 system",
+      "features": ["basic_crud", "responsive_ui"]
+    }
+  },
+  "expected_flow": {
+    "stage_1_reception": {
+      "agent": "BrainEventProcessor",
+      "action": "Validate and classify event",
+      "expected_output": {
+        "validated": true,
+        "priority": "high",
+        "requires_context": true,
+        "requires_planning": true
+      }
+    },
+    "stage_2_understanding": {
+      "agent": "BrainEventProcessor",
+      "action": "Analyze event meaning",
+      "expected_output": {
+        "complexity": "simple",
+        "key_points": [
+          "Project name: demo-app",
+          "Type: React TypeScript",
+          "Features: basic CRUD, responsive UI"
+        ]
+      }
+    },
+    "stage_3_context": {
+      "agent": "ContextFetcher",
+      "action": "Query database for context",
+      "queries": [
+        "SELECT * FROM sessions WHERE session_id = 'session_demo_001'",
+        "SELECT * FROM user_preferences WHERE user_id = 'demo_user'"
+      ],
+      "expected_output": {
+        "confidence": "medium"
+      }
+    },
+    "stage_4_planning": {
+      "agent": "BrainEventProcessor",
+      "action": "Create execution plan",
+      "expected_output": {
+        "strategy": "Delegate to ProjectScaffolder",
+        "required_agents": ["ProjectScaffolder", "ContextUpdater"],
+        "execution_mode": "sequential"
+      }
+    },
+    "stage_5_execution": {
+      "agent": "ProjectScaffolder",
+      "action": "Create project structure",
+      "expected_output": {
+        "status": "success",
+        "files_created": ">= 30",
+        "directories_created": ">= 10"
+      }
+    },
+    "stage_6_persistence": {
+      "agent": "ContextUpdater",
+      "action": "Persist results to database",
+      "expected_output": {
+        "status": "success",
+        "records_written": ">= 3"
+      }
+    }
+  },
+  "test_instructions": {
+    "step_1": "Initialize Brain Event Processor: Use /BrainEventProcessorInit",
+    "step_2": "Feed test event to Brain Event Processor",
+    "step_3": "Brain should spawn Context Fetcher: Use /ContextFetcherInit",
+    "step_4": "Brain should spawn Project Scaffolder: Use /ProjectScaffolderInit",
+    "step_5": "Brain should spawn Context Updater: Use /ContextUpdaterInit",
+    "step_6": "Verify complete event flow with all stages"
+  },
+  "success_criteria": [
+    "All 6 pipeline stages complete successfully",
+    "All 3 specialist agents spawned and completed",
+    "Project structure created",
+    "Results persisted to database",
+    "No errors or exceptions",
+    "Total duration < 10 seconds"
+  ]
+}
