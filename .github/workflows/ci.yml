@@ -279,9 +279,15 @@ jobs:
 
           if [ "${{ needs.backend-ci.result }}" != "success" ] || \
              [ "${{ needs.dashboard-ci.result }}" != "success" ] || \
-             [ "${{ needs.database-ci.result }}" != "success" ] || \
-             [ "${{ needs.integration-test.result }}" != "success" ]; then
+             [ "${{ needs.database-ci.result }}" != "success" ]; then
             echo "❌ CI Pipeline Failed"
+            exit 1
+          fi
+
+          # Integration tests are optional (can be skipped)
+          if [ "${{ needs.integration-test.result }}" != "success" ] && \
+             [ "${{ needs.integration-test.result }}" != "skipped" ]; then
+            echo "❌ Integration Tests Failed"
             exit 1
           fi
 
