@@ -27,6 +27,12 @@ jest.mock('../../database/index.js', () => ({
       agent_name: 'TestAgent',
       status: 'active',
     }),
+    ensureExists: jest.fn().mockResolvedValue({
+      session_id: 'test-session-id',
+      agent_name: 'TestAgent',
+      status: 'active',
+      created_at: new Date().toISOString(),
+    }),
   })),
   EventsRepository: jest.fn().mockImplementation(() => ({
     create: jest.fn().mockImplementation((input) => Promise.resolve({

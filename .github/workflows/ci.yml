@@ -35,19 +35,23 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
+        working-directory: backend
         run: npm ci
 
       - name: Lint code
+        working-directory: backend
         run: npm run lint
         continue-on-error: true
 
       - name: Type check
+        working-directory: backend
         run: npx tsc --noEmit
 
       - name: Build backend
+        working-directory: backend
         run: npm run build
 
       - name: Apply database schema
@@ -55,6 +59,7 @@ jobs:
           PGPASSWORD=test_password psql -h localhost -U multi_claude_user -d multi_claude_system -f database/schema.sql
 
       - name: Run tests
+        working-directory: backend
         run: npm test
         env:
           DATABASE_URL: postgresql://multi_claude_user:test_password@localhost:5432/multi_claude_system
@@ -64,7 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-dist
-          path: dist
+          path: backend/dist
           retention-days: 7
 
   dashboard-ci:

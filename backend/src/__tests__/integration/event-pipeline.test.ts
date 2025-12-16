@@ -33,6 +33,12 @@ jest.mock('../../database/index.js', () => ({
       agent_name: 'TestAgent',
       status: 'active',
     }),
+    ensureExists: jest.fn().mockResolvedValue({
+      session_id: 'test-session-id',
+      agent_name: 'TestAgent',
+      status: 'active',
+      created_at: new Date().toISOString(),
+    }),
     getActiveSessions: jest.fn().mockResolvedValue([]),
   })),
   EventsRepository: jest.fn().mockImplementation(() => ({
@@ -345,7 +351,11 @@ describe('Event Pipeline Integration', () => {
       // Wait for processing
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Decision may or may not be captured depending on worker execution
+      // In mocked test environment, decision events may not fire
+      // So we verify the listener is registered rather than the event firing
+      expect(brain.listenerCount('decision:made')).toBeGreaterThan(0);
+
+      // If decision was captured, verify its structure
       if (capturedDecision) {
         expect(capturedDecision).toHaveProperty('decision_type');
         expect(capturedDecision).toHaveProperty('confidence_score');
