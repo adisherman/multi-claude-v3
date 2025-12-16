@@ -21,4 +21,5 @@ export type GameAction =
   | { type: 'SPAWN_TILE' }
   | { type: 'RESET' }
   | { type: 'UPDATE_BEST_SCORE' }
-  | { type: 'SET_BEST_SCORE'; score: number };
+  | { type: 'SET_BEST_SCORE'; score: number }
+  | { type: 'UNDO' };

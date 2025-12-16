@@ -6,7 +6,7 @@ import { useGame2048 } from './src/hooks/useGame2048';
 import { COLORS } from './src/utils/constants';
 
 export default function App() {
-  const { state, handleMove, resetGame } = useGame2048();
+  const { state, handleMove, resetGame, undoMove, canUndo } = useGame2048();
 
   return (
     <View style={styles.container}>
@@ -16,6 +16,8 @@ export default function App() {
           score={state.score}
           bestScore={state.bestScore}
           onNewGame={resetGame}
+          onUndo={undoMove}
+          canUndo={canUndo}
         />
         <GameBoard state={state} onMove={handleMove} />
       </ScrollView>

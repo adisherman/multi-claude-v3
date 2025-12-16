@@ -8,6 +8,15 @@ import { initializeBoard, addRandomTile, move, canMove, hasWon } from '../utils/
 // AsyncStorage key for best score
 const BEST_SCORE_KEY = '@game2048_best_score';
 
+// Maximum number of moves to keep in history
+const MAX_HISTORY_LENGTH = 10;
+
+// Extended state with history
+interface GameStateWithHistory {
+  current: GameState;
+  history: GameState[];
+}
+
 // Initial game state
 const initialGameState: GameState = {
   tiles: initializeBoard(),
@@ -17,15 +26,20 @@ const initialGameState: GameState = {
   hasWon: false,
 };
 
-// Game reducer
-const gameReducer = (state: GameState, action: GameAction): GameState => {
+const initialStateWithHistory: GameStateWithHistory = {
+  current: initialGameState,
+  history: [],
+};
+
+// Game reducer with history tracking
+const gameReducer = (state: GameStateWithHistory, action: GameAction): GameStateWithHistory => {
   switch (action.type) {
     case 'MOVE': {
-      if (state.isGameOver) {
+      if (state.current.isGameOver) {
         return state;
       }
 
-      const { tiles: newTiles, score: scoreGained, moved } = move(state.tiles, action.direction);
+      const { tiles: newTiles, score: scoreGained, moved } = move(state.current.tiles, action.direction);
 
       if (!moved) {
         return state;
@@ -33,41 +47,74 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
       // Add random tile after move
       const tilesWithNew = addRandomTile(newTiles);
-      const newScore = state.score + scoreGained;
+      const newScore = state.current.score + scoreGained;
       const isGameOver = !canMove(tilesWithNew);
       const won = hasWon(tilesWithNew);
 
-      return {
-        ...state,
+      const newGameState: GameState = {
+        ...state.current,
         tiles: tilesWithNew,
         score: newScore,
-        bestScore: Math.max(state.bestScore, newScore),
+        bestScore: Math.max(state.current.bestScore, newScore),
         isGameOver,
-        hasWon: state.hasWon || won,
+        hasWon: state.current.hasWon || won,
+      };
+
+      // Add current state to history before updating
+      const newHistory = [state.current, ...state.history].slice(0, MAX_HISTORY_LENGTH);
+
+      return {
+        current: newGameState,
+        history: newHistory,
+      };
+    }
+
+    case 'UNDO': {
+      if (state.history.length === 0) {
+        return state;
+      }
+
+      // Pop the most recent state from history
+      const [previousState, ...remainingHistory] = state.history;
+
+      return {
+        current: previousState,
+        history: remainingHistory,
       };
     }
 
     case 'RESET': {
-      return {
+      const newGameState: GameState = {
         tiles: initializeBoard(),
         score: 0,
-        bestScore: state.bestScore,
+        bestScore: state.current.bestScore,
         isGameOver: false,
         hasWon: false,
+      };
+
+      return {
+        current: newGameState,
+        history: [],
       };
     }
 
     case 'UPDATE_BEST_SCORE': {
       return {
         ...state,
-        bestScore: Math.max(state.bestScore, state.score),
+        current: {
+          ...state.current,
+          bestScore: Math.max(state.current.bestScore, state.current.score),
+        },
       };
     }
 
     case 'SET_BEST_SCORE': {
       return {
         ...state,
-        bestScore: action.score,
+        current: {
+          ...state.current,
+          bestScore: action.score,
+        },
       };
     }
 
@@ -78,7 +125,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
 // Custom hook for game state management
 export const useGame2048 = () => {
-  const [state, dispatch] = useReducer(gameReducer, initialGameState);
+  const [state, dispatch] = useReducer(gameReducer, initialStateWithHistory);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load best score from AsyncStorage on mount
@@ -108,14 +155,14 @@ export const useGame2048 = () => {
       if (!isLoaded) return; // Don't save until initial load is complete
 
       try {
-        await AsyncStorage.setItem(BEST_SCORE_KEY, state.bestScore.toString());
+        await AsyncStorage.setItem(BEST_SCORE_KEY, state.current.bestScore.toString());
       } catch (error) {
         console.error('Error saving best score:', error);
       }
     };
 
     saveBestScore();
-  }, [state.bestScore, isLoaded]);
+  }, [state.current.bestScore, isLoaded]);
 
   // Handle move in a specific direction
   const handleMove = useCallback((direction: Direction) => {
@@ -127,16 +174,23 @@ export const useGame2048 = () => {
     dispatch({ type: 'RESET' });
   }, []);
 
+  // Undo last move
+  const undoMove = useCallback(() => {
+    dispatch({ type: 'UNDO' });
+  }, []);
+
   // Update best score when component unmounts or score changes
   useEffect(() => {
-    if (state.score > state.bestScore) {
+    if (state.current.score > state.current.bestScore) {
       dispatch({ type: 'UPDATE_BEST_SCORE' });
     }
-  }, [state.score, state.bestScore]);
+  }, [state.current.score, state.current.bestScore]);
 
   return {
-    state,
+    state: state.current,
     handleMove,
     resetGame,
+    undoMove,
+    canUndo: state.history.length > 0,
   };
 };

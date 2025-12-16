@@ -8,16 +8,27 @@ interface HeaderProps {
   score: number;
   bestScore: number;
   onNewGame: () => void;
+  onUndo: () => void;
+  canUndo: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ score, bestScore, onNewGame }) => {
+export const Header: React.FC<HeaderProps> = ({ score, bestScore, onNewGame, onUndo, canUndo }) => {
   return (
     <View style={styles.header}>
       <View style={styles.topRow}>
         <Text style={styles.title}>2048</Text>
-        <TouchableOpacity style={styles.newGameButton} onPress={onNewGame}>
-          <Text style={styles.buttonText}>New Game</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity
+            style={[styles.undoButton, !canUndo && styles.buttonDisabled]}
+            onPress={onUndo}
+            disabled={!canUndo}
+          >
+            <Text style={[styles.buttonText, !canUndo && styles.buttonTextDisabled]}>Undo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.newGameButton} onPress={onNewGame}>
+            <Text style={styles.buttonText}>New Game</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.scoresContainer}>
@@ -56,6 +67,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.text,
   },
+  buttonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  undoButton: {
+    backgroundColor: COLORS.button,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
   newGameButton: {
     backgroundColor: COLORS.button,
     paddingHorizontal: 20,
@@ -67,10 +93,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  buttonDisabled: {
+    backgroundColor: '#d8d4d0',
+    opacity: 0.6,
+  },
   buttonText: {
     color: COLORS.lightText,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  buttonTextDisabled: {
+    color: '#999',
   },
   scoresContainer: {
     flexDirection: 'row',
