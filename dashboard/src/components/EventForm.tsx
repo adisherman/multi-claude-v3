@@ -79,10 +79,10 @@ export const EventForm = () => {
 
       // Reset form after 3 seconds
       setTimeout(() => setResult(null), 5000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setResult({
         type: 'error',
-        message: err.message || 'Failed to submit event'
+        message: err instanceof Error ? err.message : 'Failed to submit event'
       });
     } finally {
       setSubmitting(false);
@@ -111,7 +111,7 @@ export const EventForm = () => {
             <label>Priority</label>
             <select
               value={priority}
-              onChange={(e) => setPriority(e.target.value as any)}
+              onChange={(e) => setPriority(e.target.value as 'high' | 'normal' | 'low')}
               className="form-select"
             >
               <option value="high">High</option>

@@ -11,7 +11,7 @@ export interface HealthResponse {
     name: string;
     status: string;
     last_check: string;
-    details: any;
+    details: Record<string, unknown>;
   }>;
   metrics: {
     uptime_seconds: number;
@@ -21,7 +21,7 @@ export interface HealthResponse {
   };
   database: {
     connected: boolean;
-    stats: any;
+    stats: Record<string, unknown>;
   };
 }
 
@@ -47,7 +47,7 @@ export interface EventSubmission {
   source: string;
   priority: 'critical' | 'high' | 'normal' | 'low';
   session_id?: string;
-  payload: any;
+  payload: Record<string, unknown>;
 }
 
 export interface EventResponse {
