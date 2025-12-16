@@ -2,6 +2,11 @@
 
 > An intelligent multi-agent system for autonomous software development, powered by Claude AI agents working in concert.
 
+[![CI Pipeline](https://github.com/adisherman/multi-claude-v3/actions/workflows/ci.yml/badge.svg)](https://github.com/adisherman/multi-claude-v3/actions/workflows/ci.yml)
+[![Docker Build](https://github.com/adisherman/multi-claude-v3/actions/workflows/docker-build.yml/badge.svg)](https://github.com/adisherman/multi-claude-v3/actions/workflows/docker-build.yml)
+[![Code Quality](https://github.com/adisherman/multi-claude-v3/actions/workflows/code-quality.yml/badge.svg)](https://github.com/adisherman/multi-claude-v3/actions/workflows/code-quality.yml)
+[![Deploy](https://github.com/adisherman/multi-claude-v3/actions/workflows/deploy.yml/badge.svg)](https://github.com/adisherman/multi-claude-v3/actions/workflows/deploy.yml)
+
 ---
 
 ## Table of Contents

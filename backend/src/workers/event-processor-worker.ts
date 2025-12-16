@@ -275,19 +275,37 @@ export class EventProcessorWorker extends EventEmitter {
    */
   private async fetchContext(event: AgentEvent): Promise<any> {
     // Create event record in database first (required for foreign key constraints)
+    console.log(`📝 Creating event record for ${event.event_id}...`);
+
     try {
-      const existingEvent = await this.eventsRepo.findById(event.event_id);
+      // Check if event already exists
+      let existingEvent;
+      try {
+        existingEvent = await this.eventsRepo.findById(event.event_id);
+        console.log(`✓ Event ${event.event_id} already exists in database`);
+      } catch (findError: any) {
+        console.log(`Event ${event.event_id} not found, will create: ${findError.message}`);
+        existingEvent = null;
+      }
+
+      // Create event if it doesn't exist
       if (!existingEvent) {
-        await this.eventsRepo.create({
+        console.log(`Creating new event record: ${event.event_id}`);
+        const createdEvent = await this.eventsRepo.create({
+          event_id: event.event_id, // Use the event's ID
           session_id: event.session_id,
           event_type: event.event_type,
           event_category: event.event_category,
           payload: event.payload,
           context: event.context,
         });
+        console.log(`✓ Event record created successfully: ${createdEvent.event_id}`);
       }
-    } catch (error) {
-      console.warn('Failed to create event record:', error);
+    } catch (error: any) {
+      console.error(`✗ Failed to create event record for ${event.event_id}:`, error.message);
+      console.error('Full error:', error);
+      // Re-throw to fail the stage
+      throw new Error(`Event creation failed: ${error.message}`);
     }
 
     // For now, return mock context

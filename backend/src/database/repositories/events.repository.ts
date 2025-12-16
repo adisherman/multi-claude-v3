@@ -22,6 +22,7 @@ export interface AgentEventRecord {
 }
 
 export interface CreateEventInput {
+  event_id?: string; // Optional - will generate UUID if not provided
   session_id: string;
   event_type: string;
   event_category?: string;
@@ -47,7 +48,8 @@ export class EventsRepository {
       RETURNING *
     `;
 
-    const eventId = uuidv4();
+    // Use provided event_id or generate a new one
+    const eventId = input.event_id || uuidv4();
     const values = [
       eventId,
       input.session_id,
