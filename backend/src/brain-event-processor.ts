@@ -47,8 +47,12 @@ export class BrainEventProcessor extends EventEmitter {
       this.config.contextFetcher
     );
 
-    // Initialize Context Updater if database URL is available
-    const databaseUrl = process.env.DATABASE_URL;
+    // Initialize Context Updater if database configuration is available
+    const databaseUrl = process.env.DATABASE_URL ||
+      (process.env.DB_HOST && process.env.DB_NAME
+        ? `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || 'postgres'}@${process.env.DB_HOST}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME}`
+        : undefined);
+
     if (databaseUrl) {
       this.contextUpdater = new ContextUpdater(databaseUrl);
     }
@@ -91,7 +95,7 @@ export class BrainEventProcessor extends EventEmitter {
         console.warn('Continuing without database persistence');
       }
     } else {
-      console.warn('Context Updater not initialized (DATABASE_URL not set)');
+      console.warn('Context Updater not initialized (no database configuration provided)');
     }
 
     // Start the async worker
@@ -420,8 +424,8 @@ export class BrainEventProcessor extends EventEmitter {
         last_check: new Date().toISOString(),
         details: {
           connected: this.contextUpdater ? this.contextUpdater.isHealthy() : false,
-          database_url_set: !!process.env.DATABASE_URL,
-          note: this.contextUpdater ? undefined : 'Context Updater not initialized (DATABASE_URL not set)',
+          database_config_set: !!(process.env.DATABASE_URL || (process.env.DB_HOST && process.env.DB_NAME)),
+          note: this.contextUpdater ? undefined : 'Context Updater not initialized (no database configuration)',
         },
       },
       {
