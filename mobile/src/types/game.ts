@@ -20,4 +20,5 @@ export type GameAction =
   | { type: 'MOVE'; direction: Direction }
   | { type: 'SPAWN_TILE' }
   | { type: 'RESET' }
-  | { type: 'UPDATE_BEST_SCORE' };
+  | { type: 'UPDATE_BEST_SCORE' }
+  | { type: 'SET_BEST_SCORE'; score: number };

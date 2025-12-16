@@ -1,8 +1,12 @@
 // Game state management hook using useReducer
 
-import { useReducer, useCallback, useEffect } from 'react';
+import { useReducer, useCallback, useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GameState, GameAction, Direction } from '../types/game';
 import { initializeBoard, addRandomTile, move, canMove, hasWon } from '../utils/gameLogic';
+
+// AsyncStorage key for best score
+const BEST_SCORE_KEY = '@game2048_best_score';
 
 // Initial game state
 const initialGameState: GameState = {
@@ -60,6 +64,13 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
     }
 
+    case 'SET_BEST_SCORE': {
+      return {
+        ...state,
+        bestScore: action.score,
+      };
+    }
+
     default:
       return state;
   }
@@ -68,6 +79,43 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 // Custom hook for game state management
 export const useGame2048 = () => {
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load best score from AsyncStorage on mount
+  useEffect(() => {
+    const loadBestScore = async () => {
+      try {
+        const savedBestScore = await AsyncStorage.getItem(BEST_SCORE_KEY);
+        if (savedBestScore !== null) {
+          const score = parseInt(savedBestScore, 10);
+          if (!isNaN(score)) {
+            dispatch({ type: 'SET_BEST_SCORE', score });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading best score:', error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    loadBestScore();
+  }, []);
+
+  // Save best score to AsyncStorage when it changes
+  useEffect(() => {
+    const saveBestScore = async () => {
+      if (!isLoaded) return; // Don't save until initial load is complete
+
+      try {
+        await AsyncStorage.setItem(BEST_SCORE_KEY, state.bestScore.toString());
+      } catch (error) {
+        console.error('Error saving best score:', error);
+      }
+    };
+
+    saveBestScore();
+  }, [state.bestScore, isLoaded]);
 
   // Handle move in a specific direction
   const handleMove = useCallback((direction: Direction) => {
