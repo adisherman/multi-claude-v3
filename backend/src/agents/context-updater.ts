@@ -138,6 +138,15 @@ export class ContextUpdater {
    */
   private async upsertSession(client: any, event: AgentEvent) {
     try {
+      // Validate required fields
+      if (!event || !event.session_id) {
+        throw new Error('Invalid event: missing session_id');
+      }
+
+      if (!event.payload) {
+        throw new Error('Invalid event: missing payload');
+      }
+
       const result = await client.query(
         `
         INSERT INTO agent_sessions (session_id, agent_name, agent_type, status, started_at, metadata)
@@ -150,10 +159,10 @@ export class ContextUpdater {
         `,
         [
           event.session_id,
-          event.payload.agent_name || 'Unknown',
-          event.event_type.includes('agent') ? 'system' : 'task',
-          event.timestamp,
-          JSON.stringify(event.payload.metadata || {}),
+          event.payload?.agent_name || 'Unknown',
+          event.event_type?.includes('agent') ? 'system' : 'task',
+          event.timestamp || new Date().toISOString(),
+          JSON.stringify(event.payload?.metadata || {}),
         ]
       );
 
@@ -168,7 +177,7 @@ export class ContextUpdater {
       return {
         operation: 'upsert',
         table: 'agent_sessions',
-        record_id: event.session_id,
+        record_id: event?.session_id || 'unknown',
         success: false,
       };
     }
@@ -179,6 +188,11 @@ export class ContextUpdater {
    */
   private async insertEvent(client: any, event: AgentEvent) {
     try {
+      // Validate required fields
+      if (!event || !event.event_id || !event.session_id || !event.event_type) {
+        throw new Error('Invalid event: missing required fields (event_id, session_id, or event_type)');
+      }
+
       const result = await client.query(
         `
         INSERT INTO agent_events (
@@ -193,8 +207,8 @@ export class ContextUpdater {
           event.session_id,
           event.event_type,
           event.event_category || 'general',
-          event.timestamp,
-          JSON.stringify(event.payload),
+          event.timestamp || new Date().toISOString(),
+          JSON.stringify(event.payload || {}),
           JSON.stringify(event.context || {}),
         ]
       );
@@ -210,7 +224,7 @@ export class ContextUpdater {
       return {
         operation: 'insert',
         table: 'agent_events',
-        record_id: event.event_id,
+        record_id: event?.event_id || 'unknown',
         success: false,
       };
     }
@@ -225,6 +239,15 @@ export class ContextUpdater {
     decision: Decision
   ) {
     try {
+      // Validate required fields
+      if (!decision || !decision.decision_id || !decision.decision_type) {
+        throw new Error('Invalid decision: missing required fields (decision_id or decision_type)');
+      }
+
+      if (!event || !event.event_id || !event.session_id) {
+        throw new Error('Invalid event: missing required fields (event_id or session_id)');
+      }
+
       const result = await client.query(
         `
         INSERT INTO processing_decisions (
@@ -240,9 +263,9 @@ export class ContextUpdater {
           event.session_id,
           decision.decision_type,
           new Date().toISOString(),
-          decision.rationale,
-          JSON.stringify(decision.actions),
-          decision.confidence_score,
+          decision.rationale || '',
+          JSON.stringify(decision.actions || []),
+          decision.confidence_score || 0,
         ]
       );
 
@@ -257,7 +280,7 @@ export class ContextUpdater {
       return {
         operation: 'insert',
         table: 'processing_decisions',
-        record_id: decision.decision_id,
+        record_id: decision?.decision_id || 'unknown',
         success: false,
       };
     }
@@ -272,6 +295,15 @@ export class ContextUpdater {
     metrics: ProcessingMetrics
   ) {
     try {
+      // Validate required fields
+      if (!event || !event.event_id || !event.session_id) {
+        throw new Error('Invalid event: missing required fields (event_id or session_id)');
+      }
+
+      if (!metrics || metrics.duration_ms === undefined) {
+        throw new Error('Invalid metrics: missing duration_ms');
+      }
+
       const result = await client.query(
         `
         INSERT INTO system_metrics (
@@ -284,16 +316,16 @@ export class ContextUpdater {
           metrics.duration_ms,
           JSON.stringify({
             event_id: event.event_id,
-            event_type: event.event_type,
-            processing_start: metrics.processing_start,
-            processing_end: metrics.processing_end,
-            context_fetch_ms: metrics.context_fetch_ms,
-            decision_ms: metrics.decision_ms,
-            action_execution_ms: metrics.action_execution_ms,
+            event_type: event.event_type || 'unknown',
+            processing_start: metrics.processing_start || new Date().toISOString(),
+            processing_end: metrics.processing_end || new Date().toISOString(),
+            context_fetch_ms: metrics.context_fetch_ms || 0,
+            decision_ms: metrics.decision_ms || 0,
+            action_execution_ms: metrics.action_execution_ms || 0,
           }),
           event.session_id,
           JSON.stringify({
-            event_type: event.event_type,
+            event_type: event.event_type || 'unknown',
           }),
         ]
       );
