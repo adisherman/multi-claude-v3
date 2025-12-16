@@ -6,9 +6,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { BrainEventProcessor } from './brain-event-processor';
-import { AgentEvent } from './types/events';
-import { db } from './database';
+import { BrainEventProcessor } from './brain-event-processor.js';
+import { AgentEvent } from './types/events.js';
+import { db } from './database/index.js';
 
 // Load environment variables
 dotenv.config();

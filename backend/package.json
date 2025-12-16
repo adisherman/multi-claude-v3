@@ -2,6 +2,7 @@
   "name": "multi-claude-brain",
   "version": "1.0.0",
   "description": "Brain Event Processor for Multi-Claude 3.0 Autonomous Coding System",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

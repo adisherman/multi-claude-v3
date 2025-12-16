@@ -15,5 +15,11 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "moduleResolution": "bundler"
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test-*.ts",
+    "*.sh"
+  ]
 }

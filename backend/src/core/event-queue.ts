@@ -3,8 +3,8 @@
  * Priority-based event queue with backpressure handling
  */
 
-import { AgentEvent } from '../types/events';
-import { BrainConfig } from '../types/config';
+import { AgentEvent } from '../types/events.js';
+import { BrainConfig } from '../types/config.js';
 import { EventEmitter } from 'events';
 
 export class EventQueue extends EventEmitter {

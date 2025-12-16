@@ -16,15 +16,26 @@ import {
   AgentSpawnResponse,
   MergeReport,
   PersistenceConfirmation,
-} from '../types/events';
-import { BrainConfig } from '../types/config';
+  PersistenceRequest,
+} from '../types/events.js';
+import { BrainConfig } from '../types/config.js';
+import { ContextUpdater } from '../agents/context-updater.js';
 
 export class ActionExecutor {
   private config: BrainConfig;
   private activeAgents: Map<string, any> = new Map();
+  private contextUpdater: ContextUpdater | null = null;
 
-  constructor(config: BrainConfig) {
+  constructor(config: BrainConfig, contextUpdater?: ContextUpdater) {
     this.config = config;
+    this.contextUpdater = contextUpdater || null;
+  }
+
+  /**
+   * Set Context Updater
+   */
+  setContextUpdater(contextUpdater: ContextUpdater): void {
+    this.contextUpdater = contextUpdater;
   }
 
   /**
@@ -159,32 +170,44 @@ export class ActionExecutor {
   private async persistState(
     action: PersistStateAction
   ): Promise<PersistenceConfirmation> {
-    // TODO: Replace with actual Context Updater coordination
-    // For now, simulate persistence
-
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const confirmation: PersistenceConfirmation = {
-          update_id: uuidv4(),
-          timestamp: new Date().toISOString(),
-          operations: [
-            {
-              operation: 'update',
-              table: 'agent_sessions',
-              record_id: action.data.session_id || uuidv4(),
-              success: true,
+    // Check if Context Updater is available
+    if (!this.contextUpdater) {
+      console.warn('Context Updater not available, using mock persistence');
+      // Fall back to mock implementation
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const confirmation: PersistenceConfirmation = {
+            update_id: uuidv4(),
+            timestamp: new Date().toISOString(),
+            operations: [
+              {
+                operation: 'update',
+                table: 'agent_sessions',
+                record_id: action.data.session_id || uuidv4(),
+                success: true,
+              },
+            ],
+            summary: {
+              total_operations: 1,
+              successful: 1,
+              failed: 0,
             },
-          ],
-          summary: {
-            total_operations: 1,
-            successful: 1,
-            failed: 0,
-          },
-        };
+          };
 
-        resolve(confirmation);
-      }, 50); // Simulate persistence delay
-    });
+          resolve(confirmation);
+        }, 50); // Simulate persistence delay
+      });
+    }
+
+    // Use real Context Updater
+    const request: PersistenceRequest = {
+      event_data: action.data.event,
+      processing_results: action.data.decision,
+      action_outcomes: action.data.outcomes || [],
+      metrics: action.data.metrics,
+    };
+
+    return await this.contextUpdater.persistProcessingResults(request);
   }
 
   /**

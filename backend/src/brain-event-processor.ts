@@ -12,12 +12,14 @@ import {
   ValidationResult,
   HealthCheck,
   ComponentHealth,
-} from './types/events';
-import { BrainConfig, defaultConfig } from './types/config';
-import { EventQueue } from './core/event-queue';
-import { DecisionEngine } from './core/decision-engine';
-import { ContextCoordinator } from './core/context-coordinator';
-import { ActionExecutor } from './core/action-executor';
+} from './types/events.js';
+import { BrainConfig, defaultConfig } from './types/config.js';
+import { EventQueue } from './core/event-queue.js';
+import { DecisionEngine } from './core/decision-engine.js';
+import { ContextCoordinator } from './core/context-coordinator.js';
+import { ActionExecutor } from './core/action-executor.js';
+import { EventProcessorWorker } from './workers/event-processor-worker.js';
+import { ContextUpdater } from './agents/context-updater.js';
 
 export class BrainEventProcessor extends EventEmitter {
   private config: BrainConfig;
@@ -25,6 +27,8 @@ export class BrainEventProcessor extends EventEmitter {
   private decisionEngine: DecisionEngine;
   private contextCoordinator: ContextCoordinator;
   private actionExecutor: ActionExecutor;
+  private contextUpdater: ContextUpdater | null = null;
+  private worker: EventProcessorWorker;
   private isRunning: boolean = false;
   private startTime: number = Date.now();
   private metrics: {
@@ -42,7 +46,19 @@ export class BrainEventProcessor extends EventEmitter {
     this.contextCoordinator = new ContextCoordinator(
       this.config.contextFetcher
     );
-    this.actionExecutor = new ActionExecutor(this.config);
+
+    // Initialize Context Updater if database URL is available
+    const databaseUrl = process.env.DATABASE_URL;
+    if (databaseUrl) {
+      this.contextUpdater = new ContextUpdater(databaseUrl);
+    }
+
+    this.actionExecutor = new ActionExecutor(this.config, this.contextUpdater || undefined);
+    this.worker = new EventProcessorWorker({
+      concurrency: 5,
+      retryAttempts: 3,
+      processingTimeout: 30000,
+    });
     this.metrics = {
       eventsProcessed: 0,
       decisionsMade: 0,
@@ -66,9 +82,28 @@ export class BrainEventProcessor extends EventEmitter {
     this.isRunning = true;
     this.startTime = Date.now();
 
-    // Start processing events
+    // Connect Context Updater to database
+    if (this.contextUpdater) {
+      try {
+        await this.contextUpdater.connect();
+      } catch (error: any) {
+        console.error('Failed to connect Context Updater:', error.message);
+        console.warn('Continuing without database persistence');
+      }
+    } else {
+      console.warn('Context Updater not initialized (DATABASE_URL not set)');
+    }
+
+    // Start the async worker
+    await this.worker.start();
+
+    // Start processing events from queue
     this.eventQueue.on('event:dequeued', (event: AgentEvent) => {
-      this.processEvent(event);
+      // Process event asynchronously through worker
+      this.worker.processEvent(event).catch((error) => {
+        console.error(`Failed to process event ${event.event_id}:`, error);
+        this.metrics.errors++;
+      });
     });
 
     console.log('✅ Brain Event Processor started');
@@ -87,6 +122,18 @@ export class BrainEventProcessor extends EventEmitter {
     console.log('🧠 Brain Event Processor stopping...');
     this.isRunning = false;
     this.eventQueue.removeAllListeners();
+
+    // Stop the worker
+    await this.worker.stop();
+
+    // Disconnect Context Updater from database
+    if (this.contextUpdater) {
+      try {
+        await this.contextUpdater.disconnect();
+      } catch (error: any) {
+        console.error('Failed to disconnect Context Updater:', error.message);
+      }
+    }
 
     console.log('✅ Brain Event Processor stopped');
     this.emit('brain:stopped');
@@ -281,6 +328,48 @@ export class BrainEventProcessor extends EventEmitter {
   }
 
   /**
+   * Setup worker event handlers
+   */
+  private setupWorkerHandlers(): void {
+    // Worker lifecycle events
+    this.worker.on('worker:started', () => {
+      console.log('✓ Event Processing Worker started');
+    });
+
+    this.worker.on('worker:stopped', () => {
+      console.log('✓ Event Processing Worker stopped');
+    });
+
+    // Job lifecycle events
+    this.worker.on('job:started', (data: { event_id: string }) => {
+      console.log(`🔄 Job started: ${data.event_id}`);
+    });
+
+    this.worker.on('job:completed', (data: { event_id: string; duration: number }) => {
+      console.log(`✓ Job completed: ${data.event_id} (${data.duration}ms)`);
+      this.metrics.eventsProcessed++;
+    });
+
+    this.worker.on('job:failed', (data: { event_id: string; error: string; duration: number }) => {
+      console.error(`✗ Job failed: ${data.event_id} - ${data.error}`);
+      this.metrics.errors++;
+    });
+
+    // Stage events
+    this.worker.on('stage:started', (data: { event_id: string; stage: string }) => {
+      console.log(`  ▶ Stage started: ${data.stage} (${data.event_id})`);
+    });
+
+    this.worker.on('stage:completed', (data: { event_id: string; stage: string; duration?: number }) => {
+      console.log(`  ✓ Stage completed: ${data.stage} (${data.duration}ms)`);
+    });
+
+    this.worker.on('stage:failed', (data: { event_id: string; stage: string; error: string }) => {
+      console.error(`  ✗ Stage failed: ${data.stage} - ${data.error}`);
+    });
+  }
+
+  /**
    * Get health status
    */
   async getHealth(): Promise<HealthCheck> {
@@ -308,6 +397,18 @@ export class BrainEventProcessor extends EventEmitter {
         details: this.contextCoordinator.getCacheStats(),
       },
       {
+        name: 'context_updater',
+        status: this.contextUpdater
+          ? (this.contextUpdater.isHealthy() ? 'healthy' : 'unhealthy')
+          : 'degraded',
+        last_check: new Date().toISOString(),
+        details: {
+          connected: this.contextUpdater ? this.contextUpdater.isHealthy() : false,
+          database_url_set: !!process.env.DATABASE_URL,
+          note: this.contextUpdater ? undefined : 'Context Updater not initialized (DATABASE_URL not set)',
+        },
+      },
+      {
         name: 'action_executor',
         status: this.actionExecutor.isAtMaxConcurrentAgents()
           ? 'degraded'
@@ -317,6 +418,12 @@ export class BrainEventProcessor extends EventEmitter {
           active_agents: this.actionExecutor.getActiveAgents().size,
           max_concurrent: this.config.agentSpawning.maxConcurrent,
         },
+      },
+      {
+        name: 'event_processor_worker',
+        status: this.worker.isActive() ? 'healthy' : 'unhealthy',
+        last_check: new Date().toISOString(),
+        details: this.worker.getStats(),
       },
     ];
 
@@ -351,11 +458,20 @@ export class BrainEventProcessor extends EventEmitter {
    * Get metrics
    */
   getMetrics() {
+    const workerStats = this.worker.getStats();
     return {
       ...this.metrics,
       uptime_seconds: Math.floor((Date.now() - this.startTime) / 1000),
       queue_depth: this.eventQueue.getDepth(),
       active_agents: this.actionExecutor.getActiveAgents().size,
+      worker: {
+        total_processed: workerStats.totalProcessed,
+        successful: workerStats.successful,
+        failed: workerStats.failed,
+        success_rate: workerStats.successRate,
+        average_duration: workerStats.averageDuration,
+        active_jobs: workerStats.activeJobs,
+      },
     };
   }
 

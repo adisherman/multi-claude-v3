@@ -8,8 +8,8 @@ import {
   AgentEvent,
   ContextRequest,
   IntelligenceReport,
-} from '../types/events';
-import { BrainConfig } from '../types/config';
+} from '../types/events.js';
+import { BrainConfig } from '../types/config.js';
 
 export class ContextCoordinator {
   private config: BrainConfig['contextFetcher'];

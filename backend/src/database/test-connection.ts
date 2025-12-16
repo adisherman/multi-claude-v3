@@ -3,7 +3,7 @@
  * Tests database connectivity and basic operations
  */
 
-import { db, SessionsRepository, EventsRepository, DecisionsRepository } from './index';
+import { db, SessionsRepository, EventsRepository, DecisionsRepository } from './index.js';
 
 async function testConnection() {
   console.log('🧪 Testing database connection...\n');

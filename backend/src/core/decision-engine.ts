@@ -11,8 +11,8 @@ import {
   DecisionType,
   IntelligenceReport,
   Action,
-} from '../types/events';
-import { BrainConfig } from '../types/config';
+} from '../types/events.js';
+import { BrainConfig } from '../types/config.js';
 
 export interface DecisionRule {
   id: string;
