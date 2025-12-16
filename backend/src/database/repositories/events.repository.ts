@@ -91,10 +91,10 @@ export class EventsRepository {
     const query = `
       UPDATE agent_events
       SET
-        status = $2,
-        processed_at = CASE WHEN $2 = 'processed' THEN NOW() ELSE processed_at END,
+        status = $2::event_status,
+        processed_at = CASE WHEN $2::event_status = 'processed'::event_status THEN NOW() ELSE processed_at END,
         processing_duration_ms = CASE
-          WHEN $2 = 'processed' THEN EXTRACT(EPOCH FROM (NOW() - timestamp)) * 1000
+          WHEN $2::event_status = 'processed'::event_status THEN EXTRACT(EPOCH FROM (NOW() - timestamp)) * 1000
           ELSE processing_duration_ms
         END,
         error_message = $3

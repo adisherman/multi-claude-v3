@@ -24,6 +24,15 @@ dist/
 build/
 .next/
 out/
+*.js
+*.d.ts
+*.js.map
+*.d.ts.map
+# But allow source JS files
+!**/src/**/*.js
+!vite.config.js
+!eslint.config.js
+!*.config.js
 
 # IDE and Editor files
 .vscode/

@@ -274,6 +274,22 @@ export class EventProcessorWorker extends EventEmitter {
    * Stage 2: Fetch Context
    */
   private async fetchContext(event: AgentEvent): Promise<any> {
+    // Create event record in database first (required for foreign key constraints)
+    try {
+      const existingEvent = await this.eventsRepo.findById(event.event_id);
+      if (!existingEvent) {
+        await this.eventsRepo.create({
+          session_id: event.session_id,
+          event_type: event.event_type,
+          event_category: event.event_category,
+          payload: event.payload,
+          context: event.context,
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to create event record:', error);
+    }
+
     // For now, return mock context
     // In full implementation, this would call the Context Fetcher agent
     return {
