@@ -2,6 +2,7 @@
 
 import { useReducer, useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import { GameState, GameAction, Direction } from '../types/game';
 import { initializeBoard, addRandomTile, move, canMove, hasWon } from '../utils/gameLogic';
 
@@ -171,13 +172,44 @@ export const useGame2048 = () => {
 
   // Reset game
   const resetGame = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     dispatch({ type: 'RESET' });
   }, []);
 
   // Undo last move
   const undoMove = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     dispatch({ type: 'UNDO' });
   }, []);
+
+  // Track previous score and game over state for haptic feedback
+  const prevScoreRef = useRef(state.current.score);
+  const prevGameOverRef = useRef(state.current.isGameOver);
+  const prevTilesCountRef = useRef(state.current.tiles.length);
+
+  // Haptic feedback based on game state changes
+  useEffect(() => {
+    const currentScore = state.current.score;
+    const currentGameOver = state.current.isGameOver;
+    const currentTilesCount = state.current.tiles.length;
+
+    // Game over haptic
+    if (currentGameOver && !prevGameOverRef.current) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    // Score increased (merge happened) - medium impact
+    else if (currentScore > prevScoreRef.current) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    // Tiles moved without merge - light impact
+    else if (currentTilesCount > prevTilesCountRef.current && !prevGameOverRef.current) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    prevScoreRef.current = currentScore;
+    prevGameOverRef.current = currentGameOver;
+    prevTilesCountRef.current = currentTilesCount;
+  }, [state.current.score, state.current.isGameOver, state.current.tiles.length]);
 
   // Update best score when component unmounts or score changes
   useEffect(() => {
