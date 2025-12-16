@@ -194,8 +194,9 @@ jobs:
         run: |
           node dist/index.js &
           echo $! > backend.pid
-          sleep 5
+          sleep 10
         env:
+          DATABASE_URL: postgresql://multi_claude_user:test_password@localhost:5432/multi_claude_system
           DB_HOST: localhost
           DB_PORT: 5432
           DB_NAME: multi_claude_system
@@ -221,7 +222,7 @@ jobs:
 
       - name: Wait for backend
         run: |
-          timeout 30 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
+          timeout 60 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
 
       - name: Test health endpoint
         run: |
@@ -229,9 +230,9 @@ jobs:
 
       - name: Test event submission
         run: |
-          curl -X POST http://localhost:8080/events \
+          curl -f -X POST http://localhost:8080/events \
             -H "Content-Type: application/json" \
-            -d '{"session_id":"ci-test","event_type":"test.event","source":"ci","payload":{"test":true}}'
+            -d '{"session_id":"550e8400-e29b-41d4-a716-446655440000","event_type":"test.event","source":"ci","priority":"normal","payload":{"test":true}}'
 
       - name: Test metrics endpoint
         run: |
