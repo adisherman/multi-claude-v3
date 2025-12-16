@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, MetricsResponse } from '../services/api';
+import { api } from '../services/api';
+import type { MetricsResponse } from '../services/api';
 import './MetricsPanel.css';
 
 export const MetricsPanel = () => {

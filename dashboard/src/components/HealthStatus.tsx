@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, HealthResponse } from '../services/api';
+import { api } from '../services/api';
+import type { HealthResponse } from '../services/api';
 import './HealthStatus.css';
 
 export const HealthStatus = () => {
