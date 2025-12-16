@@ -1,0 +1,111 @@
+.metrics-panel {
+  background: #1e1e2e;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.metrics-panel h2 {
+  margin: 0 0 24px 0;
+  color: #e0e0e0;
+  font-size: 24px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  background: #2a2a3e;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  border-left: 4px solid;
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.metric-icon {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-label {
+  color: #888;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.metric-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.metric-value {
+  color: #e0e0e0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.metric-delta {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.metric-delta.positive {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.metric-delta.negative {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.metrics-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid #3a3a4e;
+}
+
+.refresh-indicator {
+  color: #4caf50;
+  font-size: 12px;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.refresh-rate {
+  color: #666;
+  font-size: 12px;
+}
+
+.metrics-panel.loading {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+}
