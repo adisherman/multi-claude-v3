@@ -20,6 +20,7 @@
     "node_modules",
     "dist",
     "test-*.ts",
-    "*.sh"
+    "*.sh",
+    "src/__tests__"
   ]
 }

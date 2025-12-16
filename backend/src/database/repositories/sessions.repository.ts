@@ -189,4 +189,51 @@ export class SessionsRepository {
     const result = await db.query(query, [sessionId]);
     return result.rows[0] || null;
   }
+
+  /**
+   * Ensure session exists (upsert with specific session_id)
+   * Creates session if it doesn't exist, otherwise returns existing
+   */
+  async ensureExists(
+    sessionId: string,
+    agentName: string,
+    agentType: string,
+    metadata?: any
+  ): Promise<AgentSession> {
+    // Try to find existing session
+    const existing = await this.findById(sessionId);
+    if (existing) {
+      return existing;
+    }
+
+    // Create new session with provided session_id
+    const query = `
+      INSERT INTO agent_sessions (
+        session_id,
+        agent_name,
+        agent_type,
+        status,
+        metadata
+      ) VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (session_id) DO UPDATE SET
+        updated_at = NOW()
+      RETURNING *
+    `;
+
+    const values = [
+      sessionId,
+      agentName,
+      agentType,
+      'active',
+      JSON.stringify(metadata || {}),
+    ];
+
+    const result = await db.query<AgentSession>(query, values);
+
+    if (!result.rows[0]) {
+      throw new Error('Failed to ensure session exists');
+    }
+
+    return result.rows[0];
+  }
 }

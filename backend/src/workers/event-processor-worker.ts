@@ -274,17 +274,28 @@ export class EventProcessorWorker extends EventEmitter {
    * Stage 2: Fetch Context
    */
   private async fetchContext(event: AgentEvent): Promise<any> {
-    // Create event record in database first (required for foreign key constraints)
-    console.log(`📝 Creating event record for ${event.event_id}...`);
+    // Ensure session exists first (required for foreign key constraints)
+    console.log(`📝 Ensuring session exists for ${event.session_id}...`);
 
     try {
+      // Ensure session exists before creating event
+      const agentName = event.payload?.agent_name || 'Unknown Agent';
+      const agentType = event.event_type?.includes('agent') ? 'system' : 'task';
+
+      await this.sessionsRepo.ensureExists(
+        event.session_id,
+        agentName,
+        agentType,
+        event.payload?.metadata
+      );
+      console.log(`✓ Session ${event.session_id} ensured`);
+
       // Check if event already exists
       let existingEvent;
       try {
         existingEvent = await this.eventsRepo.findById(event.event_id);
         console.log(`✓ Event ${event.event_id} already exists in database`);
       } catch (findError: any) {
-        console.log(`Event ${event.event_id} not found, will create: ${findError.message}`);
         existingEvent = null;
       }
 
@@ -292,7 +303,7 @@ export class EventProcessorWorker extends EventEmitter {
       if (!existingEvent) {
         console.log(`Creating new event record: ${event.event_id}`);
         const createdEvent = await this.eventsRepo.create({
-          event_id: event.event_id, // Use the event's ID
+          event_id: event.event_id,
           session_id: event.session_id,
           event_type: event.event_type,
           event_category: event.event_category,
@@ -304,7 +315,6 @@ export class EventProcessorWorker extends EventEmitter {
     } catch (error: any) {
       console.error(`✗ Failed to create event record for ${event.event_id}:`, error.message);
       console.error('Full error:', error);
-      // Re-throw to fail the stage
       throw new Error(`Event creation failed: ${error.message}`);
     }
 

@@ -10,17 +10,25 @@ dotenv.config();
 
 /**
  * Database configuration
+ * Supports both DATABASE_URL (connection string) and individual config variables
  */
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'multi_claude_system',
-  user: process.env.DB_USER || process.env.USER,
-  password: process.env.DB_PASSWORD || '',
-  max: 20, // Maximum pool connections
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-};
+const dbConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      max: 20, // Maximum pool connections
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    }
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      database: process.env.DB_NAME || 'multi_claude_system',
+      user: process.env.DB_USER || process.env.USER,
+      password: process.env.DB_PASSWORD || '',
+      max: 20, // Maximum pool connections
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    };
 
 /**
  * Database Client class
