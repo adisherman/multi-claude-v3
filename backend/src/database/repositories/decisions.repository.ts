@@ -68,6 +68,11 @@ export class DecisionsRepository {
     ];
 
     const result = await db.query<ProcessingDecision>(query, values);
+
+    if (!result.rows[0]) {
+      throw new Error('Failed to create decision');
+    }
+
     return result.rows[0];
   }
 

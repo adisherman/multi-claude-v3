@@ -3,10 +3,17 @@
  * Central export for all database functionality
  */
 
+import { db as dbInstance } from './client';
+
 export { db, DatabaseClient } from './client';
 export { SessionsRepository } from './repositories/sessions.repository';
 export { EventsRepository } from './repositories/events.repository';
 export { DecisionsRepository } from './repositories/decisions.repository';
+
+// Export convenience functions for direct use
+export const query = dbInstance.query.bind(dbInstance);
+export const transaction = dbInstance.transaction.bind(dbInstance);
+export const getClient = dbInstance.getClient.bind(dbInstance);
 
 // Export types
 export type {

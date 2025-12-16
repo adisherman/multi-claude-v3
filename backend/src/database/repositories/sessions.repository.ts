@@ -60,6 +60,11 @@ export class SessionsRepository {
     ];
 
     const result = await db.query<AgentSession>(query, values);
+
+    if (!result.rows[0]) {
+      throw new Error('Failed to create session');
+    }
+
     return result.rows[0];
   }
 

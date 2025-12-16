@@ -102,7 +102,7 @@ export class ContextFetcher {
    * Get session overview
    */
   private async getSessionOverview(sessionId: string): Promise<any> {
-    const result = await query(
+    const result = await db.query(
       `SELECT session_id, agent_name, agent_type, status, started_at, completed_at,
               duration_ms, metadata, configuration
        FROM agent_sessions
@@ -130,7 +130,7 @@ export class ContextFetcher {
    * Get event summary
    */
   private async getEventSummary(sessionId: string): Promise<any> {
-    const result = await query(
+    const result = await db.query(
       `SELECT
          COUNT(*) as total_events,
          COUNT(CASE WHEN status = 'failed' THEN 1 END) as error_count,
@@ -141,7 +141,7 @@ export class ContextFetcher {
       [sessionId]
     );
 
-    const recentEvents = await query(
+    const recentEvents = await db.query(
       `SELECT event_type, status, timestamp, payload
        FROM agent_events
        WHERE session_id = $1
@@ -163,7 +163,7 @@ export class ContextFetcher {
    * Get task summary
    */
   private async getTaskSummary(sessionId: string): Promise<any> {
-    const result = await query(
+    const result = await db.query(
       `SELECT
          COUNT(*) as total_tasks,
          COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
@@ -175,7 +175,7 @@ export class ContextFetcher {
       [sessionId]
     );
 
-    const recentTasks = await query(
+    const recentTasks = await db.query(
       `SELECT task_name, status, created_at, completed_at
        FROM agent_tasks
        WHERE session_id = $1
@@ -198,7 +198,7 @@ export class ContextFetcher {
    * Get file activity
    */
   private async getFileActivity(sessionId: string): Promise<any> {
-    const result = await query(
+    const result = await db.query(
       `SELECT
          COUNT(DISTINCT file_path) as files_modified,
          COUNT(*) as total_operations,
@@ -208,7 +208,7 @@ export class ContextFetcher {
       [sessionId]
     );
 
-    const recentOps = await query(
+    const recentOps = await db.query(
       `SELECT file_path, operation_type, timestamp, success
        FROM file_operations
        WHERE session_id = $1

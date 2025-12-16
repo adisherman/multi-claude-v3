@@ -6,8 +6,13 @@
  * agent outputs, and system state changes.
  */
 
-import { transaction, query, getClient } from '../../database/index.js';
+import { db } from '../../database/index.js';
 import type { PoolClient } from 'pg';
+
+// Extract methods from db for use in this module
+const transaction = db.transaction.bind(db);
+const query = db.query.bind(db);
+const getClient = db.getClient.bind(db);
 
 /**
  * Persistence request interface
@@ -113,7 +118,7 @@ export class ContextUpdater {
 
     try {
       // Insert event
-      const eventResult = await query(
+      const eventResult = await db.query(
         `INSERT INTO agent_events (session_id, event_type, event_category, payload, status)
          VALUES ($1, $2, $3, $4, 'processed')
          RETURNING event_id`,
@@ -163,7 +168,7 @@ export class ContextUpdater {
     const warnings: string[] = [];
 
     try {
-      await transaction(async (client: PoolClient) => {
+      await db.transaction(async (client: PoolClient) => {
         for (const operation of operations) {
           try {
             if (operation.type === 'insert') {
@@ -276,7 +281,10 @@ export class ContextUpdater {
     // Update counters
     recordsWritten[table] = (recordsWritten[table] || 0) + 1;
     if (!recordIds[table]) recordIds[table] = [];
-    recordIds[table].push(result.rows[0][Object.keys(result.rows[0])[0]]);
+    const firstKey = Object.keys(result.rows[0])[0];
+    if (firstKey) {
+      recordIds[table].push(result.rows[0][firstKey]);
+    }
   }
 
   /**
@@ -329,7 +337,7 @@ export class ContextUpdater {
     sessionId: string,
     metadata: any
   ): Promise<any> {
-    const result = await query(
+    const result = await db.query(
       `UPDATE agent_sessions
        SET metadata = metadata || $1, updated_at = NOW()
        WHERE session_id = $2
@@ -348,7 +356,7 @@ export class ContextUpdater {
     result: any,
     status: 'completed' | 'failed' = 'completed'
   ): Promise<any> {
-    const queryResult = await query(
+    const queryResult = await db.query(
       `UPDATE agent_tasks
        SET status = $1, result = $2, completed_at = NOW(), updated_at = NOW()
        WHERE task_id = $3

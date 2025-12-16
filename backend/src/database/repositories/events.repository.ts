@@ -59,6 +59,11 @@ export class EventsRepository {
     ];
 
     const result = await db.query<AgentEventRecord>(query, values);
+
+    if (!result.rows[0]) {
+      throw new Error('Failed to create event');
+    }
+
     return result.rows[0];
   }
 
