@@ -29,7 +29,7 @@ export class BrainEventProcessor extends EventEmitter {
   private startTime: number = Date.now();
   private metrics: {
     eventsProcessed: number;
-    decisionsM ade: number;
+    decisionsMade: number;
     actionsExecuted: number;
     errors: number;
   };

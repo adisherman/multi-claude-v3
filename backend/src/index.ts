@@ -8,6 +8,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { BrainEventProcessor } from './brain-event-processor';
 import { AgentEvent } from './types/events';
+import { db } from './database';
 
 // Load environment variables
 dotenv.config();
@@ -85,8 +86,17 @@ app.get('/events/:event_id', async (req, res) => {
 app.get('/health', async (req, res) => {
   try {
     const health = await brain.getHealth();
-    const statusCode = health.status === 'healthy' ? 200 : 503;
-    res.status(statusCode).json(health);
+    const dbHealthy = db.isHealthy();
+    const dbStats = db.getStats();
+
+    const statusCode = health.status === 'healthy' && dbHealthy ? 200 : 503;
+    res.status(statusCode).json({
+      ...health,
+      database: {
+        connected: dbHealthy,
+        stats: dbStats,
+      },
+    });
   } catch (error: any) {
     res.status(500).json({
       status: 'unhealthy',
@@ -167,18 +177,30 @@ app.use(
 // Start server
 async function startServer() {
   try {
+    console.log('🚀 Starting Multi-Claude 3.0 Brain Event Processor...');
+
+    // Connect to database
+    console.log('📊 Connecting to database...');
+    await db.connect();
+    console.log('✓ Database connection established');
+
     // Start Brain Event Processor
+    console.log('🧠 Initializing Brain Event Processor...');
     await brain.start();
 
     // Start HTTP server
     app.listen(PORT, () => {
-      console.log(`🚀 Brain Event Processor server listening on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      console.log('');
+      console.log('✨ Multi-Claude 3.0 Brain Event Processor is ready!');
+      console.log('');
+      console.log(`🌐 Server: http://localhost:${PORT}`);
+      console.log(`📊 Health: http://localhost:${PORT}/health`);
       console.log(`📈 Metrics: http://localhost:${PORT}/metrics`);
-      console.log(`📋 Queue status: http://localhost:${PORT}/queue/status`);
+      console.log(`📋 Queue: http://localhost:${PORT}/queue/status`);
+      console.log('');
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }
@@ -187,12 +209,14 @@ async function startServer() {
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');
   await brain.stop();
+  await db.close();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully...');
   await brain.stop();
+  await db.close();
   process.exit(0);
 });
 

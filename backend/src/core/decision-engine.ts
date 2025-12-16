@@ -131,7 +131,7 @@ export class DecisionEngine {
       priority: 80,
       condition: (ctx) =>
         ctx.event.event_type === 'agent_completed' &&
-        ctx.context.findings.concurrent_sessions &&
+        !!ctx.context.findings.concurrent_sessions &&
         ctx.context.findings.concurrent_sessions > 1 &&
         ctx.context.findings.potential_conflicts === 0,
       action: (ctx) => ({
@@ -213,7 +213,7 @@ export class DecisionEngine {
       priority: 85,
       condition: (ctx) =>
         ctx.event.event_type === 'file_modified' &&
-        ctx.context.findings.concurrent_sessions &&
+        !!ctx.context.findings.concurrent_sessions &&
         ctx.context.findings.concurrent_sessions > 1,
       action: (ctx) => ({
         decision_type: 'merge_changes',
