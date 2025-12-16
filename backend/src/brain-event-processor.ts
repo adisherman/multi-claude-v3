@@ -99,8 +99,8 @@ export class BrainEventProcessor extends EventEmitter {
 
     // Start processing events from queue
     this.eventQueue.on('event:dequeued', (event: AgentEvent) => {
-      // Process event asynchronously through worker
-      this.worker.processEvent(event).catch((error) => {
+      // Process event through Brain's full pipeline
+      this.processEvent(event).catch((error) => {
         console.error(`Failed to process event ${event.event_id}:`, error);
         this.metrics.errors++;
       });
@@ -228,7 +228,7 @@ export class BrainEventProcessor extends EventEmitter {
       );
 
       // Phase 3: Execute actions if confidence meets threshold
-      let actionOutcomes = [];
+      let actionOutcomes: any[] = [];
       if (
         decision.confidence_score >=
         this.config.decisionEngine.autoExecuteThreshold
@@ -253,10 +253,8 @@ export class BrainEventProcessor extends EventEmitter {
 
       // Phase 4: Persist state (always)
       const persistenceStart = Date.now();
-      // TODO: Coordinate with Context Updater to persist
-      persistenceMs = Date.now() - persistenceStart;
 
-      // Track metrics
+      // Track metrics first so we can include persistence time
       const metrics: ProcessingMetrics = {
         event_id: event.event_id,
         processing_start: new Date(processingStart).toISOString(),
@@ -265,8 +263,26 @@ export class BrainEventProcessor extends EventEmitter {
         context_fetch_ms: contextFetchMs,
         decision_ms: decisionMs,
         action_execution_ms: actionExecutionMs,
-        persistence_ms: persistenceMs,
+        persistence_ms: 0, // Will be updated below
       };
+
+      // Persist using Context Updater
+      if (this.contextUpdater) {
+        try {
+          await this.contextUpdater.persistProcessingResults({
+            event_data: event,
+            processing_results: decision,
+            action_outcomes: actionOutcomes,
+            metrics,
+          });
+          console.log(`✓ Persisted event ${event.event_id} to database`);
+        } catch (error: any) {
+          console.error(`Failed to persist event ${event.event_id}:`, error.message);
+        }
+      }
+
+      persistenceMs = Date.now() - persistenceStart;
+      metrics.persistence_ms = persistenceMs;
 
       this.metrics.eventsProcessed++;
       this.emit('event:processed', { event, decision, metrics });

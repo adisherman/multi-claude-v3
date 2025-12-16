@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: multi-claude-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: multi_claude_system
+      POSTGRES_USER: multi_claude_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-multi_claude_pass_2024}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    networks:
+      - multi-claude-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U multi_claude_user -d multi_claude_system"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: multi-claude-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: multi_claude_system
+      DB_USER: multi_claude_user
+      DB_PASSWORD: ${DB_PASSWORD:-multi_claude_pass_2024}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - multi-claude-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./backend/logs:/app/logs
+
+  # Frontend Dashboard
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8080
+    container_name: multi-claude-dashboard
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://backend:8080
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - multi-claude-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  multi-claude-network:
+    driver: bridge
+    name: multi-claude-network
+
+volumes:
+  postgres_data:
+    name: multi-claude-postgres-data
