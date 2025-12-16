@@ -30,26 +30,59 @@ const getTilePosition = (position: number) => {
 };
 
 export const Tile = React.memo(({ value, position }: TileProps) => {
+  const isMounted = useRef(false);
+  const prevPositionRef = useRef<number>(position);
+
+  const currentPos = getTilePosition(position);
+
+  // Initialize animated values with current position
+  const topAnim = useRef(new Animated.Value(currentPos.top)).current;
+  const leftAnim = useRef(new Animated.Value(currentPos.left)).current;
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
+  // On mount, animate scale for new tile
   useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 6,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
+    if (!isMounted.current) {
+      isMounted.current = true;
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    }
   }, [scaleAnim]);
 
-  const tilePosition = getTilePosition(position);
+  // Animate position when it changes
+  useEffect(() => {
+    if (isMounted.current && prevPositionRef.current !== position) {
+      const newPos = getTilePosition(position);
+
+      Animated.parallel([
+        Animated.timing(topAnim, {
+          toValue: newPos.top,
+          duration: 150,
+          useNativeDriver: false,
+        }),
+        Animated.timing(leftAnim, {
+          toValue: newPos.left,
+          duration: 150,
+          useNativeDriver: false,
+        }),
+      ]).start();
+    }
+
+    prevPositionRef.current = position;
+  }, [position, topAnim, leftAnim]);
 
   return (
     <Animated.View
       style={[
         styles.tile,
         getTileStyle(value),
-        tilePosition,
         {
+          top: topAnim,
+          left: leftAnim,
           transform: [{ scale: scaleAnim }],
         },
       ]}
