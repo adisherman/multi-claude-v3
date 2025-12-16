@@ -190,12 +190,28 @@ jobs:
       - name: Start backend server
         working-directory: ./backend
         run: |
-          npm start &
+          node dist/index.js &
           echo $! > backend.pid
+          sleep 5
         env:
           DATABASE_URL: postgresql://multi_claude_user:test_password@localhost:5432/multi_claude_system
           PORT: 8080
           NODE_ENV: test
+
+      - name: Check if backend started
+        run: |
+          if [ -f backend/backend.pid ]; then
+            PID=$(cat backend/backend.pid)
+            if ps -p $PID > /dev/null; then
+              echo "Backend is running with PID $PID"
+            else
+              echo "Backend process died"
+              exit 1
+            fi
+          else
+            echo "Backend PID file not found"
+            exit 1
+          fi
 
       - name: Wait for backend
         run: |
