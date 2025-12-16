@@ -99,8 +99,8 @@ export class BrainEventProcessor extends EventEmitter {
 
     // Start processing events from queue
     this.eventQueue.on('event:dequeued', (event: AgentEvent) => {
-      // Process event through Brain's full pipeline
-      this.processEvent(event).catch((error) => {
+      // Process event asynchronously through worker
+      this.worker.processEvent(event).catch((error) => {
         console.error(`Failed to process event ${event.event_id}:`, error);
         this.metrics.errors++;
       });
