@@ -1,0 +1,20 @@
+{
+  "name": "game2048",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "workspaces": [
+    "mobile",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm start -w mobile\" \"npm run dev -w backend\"",
+    "build:backend": "npm run build -w backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
