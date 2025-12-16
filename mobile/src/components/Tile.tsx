@@ -32,12 +32,11 @@ const getTilePosition = (position: number) => {
 export const Tile = React.memo(({ value, position }: TileProps) => {
   const isMounted = useRef(false);
   const prevPositionRef = useRef<number>(position);
+  const basePositionRef = useRef(getTilePosition(position));
 
-  const currentPos = getTilePosition(position);
-
-  // Initialize animated values with current position
-  const topAnim = useRef(new Animated.Value(currentPos.top)).current;
-  const leftAnim = useRef(new Animated.Value(currentPos.left)).current;
+  // Initialize animated values for transforms (start at 0 offset)
+  const translateXAnim = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   // On mount, animate scale for new tile
@@ -56,24 +55,45 @@ export const Tile = React.memo(({ value, position }: TileProps) => {
   // Animate position when it changes
   useEffect(() => {
     if (isMounted.current && prevPositionRef.current !== position) {
+      const oldPos = getTilePosition(prevPositionRef.current);
       const newPos = getTilePosition(position);
 
+      // Calculate the translation delta
+      const deltaX = newPos.left - oldPos.left;
+      const deltaY = newPos.top - oldPos.top;
+
+      // Start from current position offset
+      const currentOffset = {
+        x: basePositionRef.current.left - oldPos.left,
+        y: basePositionRef.current.top - oldPos.top,
+      };
+
+      // Set starting point
+      translateXAnim.setValue(currentOffset.x);
+      translateYAnim.setValue(currentOffset.y);
+
+      // Animate to new position offset
       Animated.parallel([
-        Animated.timing(topAnim, {
-          toValue: newPos.top,
+        Animated.timing(translateXAnim, {
+          toValue: currentOffset.x + deltaX,
           duration: 150,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
-        Animated.timing(leftAnim, {
-          toValue: newPos.left,
+        Animated.timing(translateYAnim, {
+          toValue: currentOffset.y + deltaY,
           duration: 150,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        // After animation, update base position and reset transforms
+        basePositionRef.current = newPos;
+        translateXAnim.setValue(0);
+        translateYAnim.setValue(0);
+      });
     }
 
     prevPositionRef.current = position;
-  }, [position, topAnim, leftAnim]);
+  }, [position, translateXAnim, translateYAnim]);
 
   return (
     <Animated.View
@@ -81,9 +101,13 @@ export const Tile = React.memo(({ value, position }: TileProps) => {
         styles.tile,
         getTileStyle(value),
         {
-          top: topAnim,
-          left: leftAnim,
-          transform: [{ scale: scaleAnim }],
+          top: basePositionRef.current.top,
+          left: basePositionRef.current.left,
+          transform: [
+            { translateX: translateXAnim },
+            { translateY: translateYAnim },
+            { scale: scaleAnim },
+          ],
         },
       ]}
     >
