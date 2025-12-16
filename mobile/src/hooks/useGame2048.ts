@@ -1,6 +1,6 @@
 // Game state management hook using useReducer
 
-import { useReducer, useCallback, useEffect, useState } from 'react';
+import { useReducer, useCallback, useEffect, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { GameState, GameAction, Direction } from '../types/game';

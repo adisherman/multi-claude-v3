@@ -195,7 +195,7 @@ export const move = (tiles: Tile[], direction: Direction): { tiles: Tile[], scor
         return { ...tile, position: position1D(row, BOARD_SIZE - 1 - col) };
       } else if (direction === 'down') {
         return { ...tile, position: position1D(BOARD_SIZE - 1 - row, col) };
-      } else if (direction === 'up' || direction === 'down') {
+      } else if (direction === 'up') {
         return { ...tile, position: position1D(col, row) };
       }
 
