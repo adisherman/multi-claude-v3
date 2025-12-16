@@ -1,11 +1,24 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
+import { Header } from './src/components/Header';
+import { GameBoard } from './src/components/GameBoard';
+import { useGame2048 } from './src/hooks/useGame2048';
+import { COLORS } from './src/utils/constants';
 
 export default function App() {
+  const { state, handleMove, resetGame } = useGame2048();
+
   return (
     <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Header
+          score={state.score}
+          bestScore={state.bestScore}
+          onNewGame={resetGame}
+        />
+        <GameBoard state={state} onMove={handleMove} />
+      </ScrollView>
     </View>
   );
 }
@@ -13,8 +26,10 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 20,
   },
 });
