@@ -1,0 +1,20 @@
+# 3. Components
+- Game Engine (core/engine)
+  - Responsibility: Board state, legal moves, win/draw detection, turn switching.
+  - Interfaces: `createGame()`, `applyMove()`, `getWinner()`, `isDraw()`.
+  - Dependencies: None (pure TS).
+- CPU Heuristics (core/ai)
+  - Responsibility: Simple opponent moves (win/block + basic center/corner heuristics).
+  - Interfaces: `pickMove(board, player)`.
+  - Dependencies: Game Engine types.
+- AsyncStorage Wrapper (services/storage)
+  - Responsibility: Persist stats and settings; expose typed API.
+  - Interfaces: `getStats()`, `saveStats()`, `getSettings()`, `saveSettings()`, `resetAll()`.
+  - Dependencies: AsyncStorage.
+- UI Components (ui/components)
+  - Responsibility: `Board`, `Cell`, `HUD` (turn indicator, restart), `WinLine`.
+  - Dependencies: Engine state, theme/tokens.
+- Screens (ui/screens)
+  - Home: Mode selection (Solo, Pass‑and‑Play); quick actions.
+  - Game: Board, HUD, end‑state dialog; integrates engine and AI.
+  - Settings: Sound/haptics toggles; reset stats; credits.
